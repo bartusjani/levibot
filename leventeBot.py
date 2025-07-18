@@ -16,23 +16,31 @@ bot = commands.Bot(command_prefix='!', intents=intents)
 
 
 pinging = {}
+dcId= None
 
 @bot.command()
 async def ping(ctx, member: discord.Member):
-    if member.voice and member.voice.channel:
-        await ctx.send(f"{member.display_name} hangcsatornában van, leállítom a pingelést.")
-        await stop(ctx)
-        return
-    
-    if ctx.channel.id in pinging:
-        await ctx.send("Már pingelek valakit ebben a csatornában. Írd be, hogy `!stop`!")
-        return
+    try:
+        global dcId
+        dcId = member.id
+        if member.voice and member.voice.channel:
+            await ctx.send(f"{member.display_name} hangcsatornában van, leállítom a pingelést.")
+            await stop(ctx)
+            return
+        
+        #print(ctx.author.id, member.id)
+        if ctx.channel.id in pinging:
+            await ctx.send("Már pingelek valakit ebben a csatornában. Írd be, hogy `!stop`!")
+            return
 
-    await ctx.send(f"Elkezdtem pingelni {member.mention}-t. Írd be `!stop`, ha elég!")
-    pinging[ctx.channel.id] = {
-        "member": member,
-        "task": bot.loop.create_task(ping_loop(ctx, member))
-    }
+
+        await ctx.send(f"Elkezdtem pingelni {member.mention}-t. Írd be `!stop`, ha elég!")
+        pinging[ctx.channel.id] = {
+            "member": member,
+            "task": bot.loop.create_task(ping_loop(ctx, member))
+        }
+    except:
+        await ctx.send("Hiba")
 
 async def ping_loop(ctx, member):
     try:
@@ -58,6 +66,10 @@ async def on_voice_state_update(member, before, after):
 @bot.command()
 async def stop(ctx):
     if ctx.channel.id in pinging:
+        print(ctx.author.id, dcId)
+        if ctx.author.id == dcId:
+            await ctx.send("Beszoptad haha, nem állítom le a pingelést.")
+            return
         pinging[ctx.channel.id]["task"].cancel()
         del pinging[ctx.channel.id]
         await ctx.send("Leállítottam a pingelést.")
